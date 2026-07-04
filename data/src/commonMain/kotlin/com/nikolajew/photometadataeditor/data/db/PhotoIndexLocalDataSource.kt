@@ -41,6 +41,16 @@ class PhotoIndexLocalDataSource(
         withContext(Dispatchers.IO) {
             queries.setProcessed(if (processed) 1L else 0L, paths)
         }
+
+    suspend fun updateTakenAt(path: String, takenAtEpochMillis: Long) =
+        withContext(Dispatchers.IO) {
+            queries.updateTakenAt(takenAtEpochMillis, path)
+        }
+
+    suspend fun updateLocation(path: String, latitude: Double, longitude: Double) =
+        withContext(Dispatchers.IO) {
+            queries.updateLocation(latitude, longitude, path)
+        }
 }
 
 data class IndexedFile(

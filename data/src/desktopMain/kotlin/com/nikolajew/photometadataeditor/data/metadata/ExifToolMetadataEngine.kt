@@ -1,10 +1,12 @@
 package com.nikolajew.photometadataeditor.data.metadata
 
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
+import kotlin.math.abs
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -26,6 +28,34 @@ class ExifToolMetadataEngine(
             result += readChunk(chunk)
         }
         return result
+    }
+
+    override suspend fun writeMetadata(path: String, patch: MetadataPatch) {
+        val args = buildList {
+            add("-charset")
+            add("filename=UTF8")
+            add("-overwrite_original")
+            patch.takenAt?.let { add("-AllDates=${it.toExifString()}") }
+            patch.location?.let { location ->
+                if (isVideo(path)) {
+                    // QuickTime хранит координаты одним тегом
+                    add("-GPSCoordinates=${location.latitude}, ${location.longitude}")
+                } else {
+                    add("-GPSLatitude=${abs(location.latitude)}")
+                    add("-GPSLatitudeRef=${if (location.latitude >= 0) "N" else "S"}")
+                    add("-GPSLongitude=${abs(location.longitude)}")
+                    add("-GPSLongitudeRef=${if (location.longitude >= 0) "E" else "W"}")
+                }
+            }
+            add(path)
+        }
+
+        val output = exifTool.execute(args)
+        if (!output.contains("1 image files updated")) {
+            throw MetadataWriteException(
+                "exiftool не обновил файл: ${output.trim().ifEmpty { "подробности в логе" }}",
+            )
+        }
     }
 
     private suspend fun readChunk(paths: List<String>): Map<String, FileMetadata> {
@@ -69,6 +99,18 @@ class ExifToolMetadataEngine(
 
     private companion object {
         const val CHUNK_SIZE = 500
+
+        val VIDEO_EXTENSIONS = setOf("mp4", "mov")
+
+        fun isVideo(path: String): Boolean =
+            path.substringAfterLast('.').lowercase() in VIDEO_EXTENSIONS
+
+        fun Instant.toExifString(): String {
+            val dt = toLocalDateTime(TimeZone.UTC)
+            fun Int.pad2() = toString().padStart(2, '0')
+            return "${dt.year.toString().padStart(4, '0')}:${dt.monthNumber.pad2()}:" +
+                "${dt.dayOfMonth.pad2()} ${dt.hour.pad2()}:${dt.minute.pad2()}:${dt.second.pad2()}"
+        }
 
         /** Формат exiftool: "2023:05:12 14:30:22" (+ опциональные субсекунды/таймзона). */
         val EXIF_DATE_REGEX =

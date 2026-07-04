@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -25,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -32,6 +35,9 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,7 +109,11 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
         VerticalDivider()
         DetailPanel(
             photo = state.selectedPhoto,
+            isSaving = state.isSaving,
+            editError = state.editError,
             onToggleProcessed = component::onToggleProcessed,
+            onSaveCaptureDate = component::onSaveCaptureDate,
+            onSaveLocation = component::onSaveLocation,
         )
     }
 }
@@ -204,7 +214,11 @@ private fun PhotoTile(
 @Composable
 private fun DetailPanel(
     photo: Photo?,
+    isSaving: Boolean,
+    editError: String?,
     onToggleProcessed: () -> Unit,
+    onSaveCaptureDate: (String) -> Unit,
+    onSaveLocation: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -219,7 +233,10 @@ private fun DetailPanel(
                 textAlign = TextAlign.Center,
             )
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -251,14 +268,22 @@ private fun DetailPanel(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = "Дата съёмки: ${photo.takenAt?.formatForUi() ?: "неизвестна"}",
-                    style = MaterialTheme.typography.bodyMedium,
+
+                MetadataEditor(
+                    photo = photo,
+                    isSaving = isSaving,
+                    onSaveCaptureDate = onSaveCaptureDate,
+                    onSaveLocation = onSaveLocation,
                 )
-                Text(
-                    text = "Локация: ${photo.location?.formatForUi() ?: "нет данных"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+
+                if (editError != null) {
+                    Text(
+                        text = editError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
                 Text(
                     text = if (photo.processed) "Статус: обработано" else "Статус: не обработано",
                     style = MaterialTheme.typography.bodyMedium,
@@ -277,15 +302,80 @@ private fun DetailPanel(
     }
 }
 
+@Composable
+private fun MetadataEditor(
+    photo: Photo,
+    isSaving: Boolean,
+    onSaveCaptureDate: (String) -> Unit,
+    onSaveLocation: (String, String) -> Unit,
+) {
+    var dateInput by remember(photo.id, photo.takenAt) {
+        mutableStateOf(photo.takenAt?.formatForInput() ?: "")
+    }
+    var latInput by remember(photo.id, photo.location) {
+        mutableStateOf(photo.location?.latitude?.round5()?.toString() ?: "")
+    }
+    var lonInput by remember(photo.id, photo.location) {
+        mutableStateOf(photo.location?.longitude?.round5()?.toString() ?: "")
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = dateInput,
+            onValueChange = { dateInput = it },
+            label = { Text("Дата съёмки (дд.мм.гггг чч:мм)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            onClick = { onSaveCaptureDate(dateInput) },
+            enabled = !isSaving && dateInput.isNotBlank(),
+        ) {
+            Text("Сохранить дату")
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = latInput,
+                onValueChange = { latInput = it },
+                label = { Text("Широта") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = lonInput,
+                onValueChange = { lonInput = it },
+                label = { Text("Долгота") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(
+                onClick = { onSaveLocation(latInput, lonInput) },
+                enabled = !isSaving && latInput.isNotBlank() && lonInput.isNotBlank(),
+            ) {
+                Text("Сохранить локацию")
+            }
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                )
+            }
+        }
+    }
+}
+
 /** Дата съёмки хранится как «настенное» время, интерпретированное в UTC. */
-private fun Instant.formatForUi(): String {
+private fun Instant.formatForInput(): String {
     val dt = toLocalDateTime(TimeZone.UTC)
     return "${dt.dayOfMonth.pad2()}.${dt.monthNumber.pad2()}.${dt.year} " +
         "${dt.hour.pad2()}:${dt.minute.pad2()}"
 }
-
-private fun GeoPoint.formatForUi(): String =
-    "${latitude.round5()}, ${longitude.round5()}"
 
 private fun Int.pad2(): String = toString().padStart(2, '0')
 

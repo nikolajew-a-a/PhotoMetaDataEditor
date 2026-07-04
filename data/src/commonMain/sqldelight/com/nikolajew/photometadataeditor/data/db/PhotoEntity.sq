@@ -26,3 +26,9 @@ DELETE FROM photoEntity WHERE indexed_at < :scanTime;
 
 setProcessed:
 UPDATE photoEntity SET processed = :processed WHERE path IN :paths;
+
+updateTakenAt:
+UPDATE photoEntity SET taken_at = :takenAt WHERE path = :path;
+
+updateLocation:
+UPDATE photoEntity SET lat = :lat, lon = :lon WHERE path = :path;

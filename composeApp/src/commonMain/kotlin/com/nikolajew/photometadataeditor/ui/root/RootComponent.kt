@@ -45,6 +45,8 @@ class DefaultRootComponent(
                 folderPicker = get(),
                 openFolder = get(),
                 setProcessed = get(),
+                updateCaptureDate = get(),
+                updateLocation = get(),
                 observeLibrary = get(),
             ),
         )

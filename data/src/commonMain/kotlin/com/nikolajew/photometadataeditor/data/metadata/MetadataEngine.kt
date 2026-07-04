@@ -15,9 +15,22 @@ interface MetadataEngine {
      * Файлы, для которых ничего не удалось прочитать, в результате отсутствуют.
      */
     suspend fun readMetadata(paths: List<String>): Map<String, FileMetadata>
+
+    /**
+     * Записывает в файл поля, заданные в патче (null-поля не трогаются).
+     * Бросает исключение, если запись не удалась.
+     */
+    suspend fun writeMetadata(path: String, patch: MetadataPatch)
 }
 
 data class FileMetadata(
     val takenAt: Instant?,
     val location: GeoPoint?,
 )
+
+data class MetadataPatch(
+    val takenAt: Instant? = null,
+    val location: GeoPoint? = null,
+)
+
+class MetadataWriteException(message: String) : Exception(message)
