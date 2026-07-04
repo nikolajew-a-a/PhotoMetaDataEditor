@@ -2,12 +2,16 @@
 kotlin = "2.2.0"
 compose-multiplatform = "1.8.2"
 decompose = "3.3.0"
+coil = "3.2.0"
+okio = "3.9.0"
 koin = "4.0.4"
 coroutines = "1.10.2"
 kotlinx-datetime = "0.6.2"
 kotlinx-serialization = "1.8.1"
 
 [libraries]
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-extensions-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
