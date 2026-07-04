@@ -78,28 +78,44 @@ EditorComponent → UpdateCaptureDateUseCase → MetadataRepository:
 
 Компоненты Decompose получают зависимости через конструктор (Koin вызывается один раз на старте в `main()`).
 
-## Структура пакетов (`commonMain`)
+## Gradle-модули
+
+Слои разделены на отдельные Gradle-модули — направление зависимостей проверяет компилятор:
 
 ```
-com.nikolajew.photometadataeditor/
-├── domain/
-│   ├── model/
-│   ├── repository/      # интерфейсы
-│   └── usecase/
-├── data/
-│   ├── db/              # SQLDelight
-│   ├── scanner/
-│   ├── metadata/        # ExifToolClient (интерфейс), MetadataRepositoryImpl
-│   └── repository/
-├── ui/
-│   ├── root/
-│   ├── library/         # grid + detail + batch
-│   ├── editor/
-│   ├── locationpicker/
-│   ├── map/
-│   ├── settings/
-│   └── theme/
-└── di/
+:domain      — чистый Kotlin: модели, интерфейсы репозиториев, use case'ы.
+               Зависит только от coroutines/datetime.
+:data        — реализации репозиториев, сканер, SQLDelight, ExifToolClient.
+               Зависит от :domain.
+:composeApp  — Decompose-компоненты, Compose UI, DI (composition root),
+               платформенные UI-сервисы (FolderPicker). Зависит от :domain и :data.
+```
+
+Каждый модуль — KMP с target'ом `desktop` (позже добавится `android`).
+
+## Структура пакетов
+
+```
+:domain  com.nikolajew.photometadataeditor.domain/
+         ├── model/
+         ├── repository/      # интерфейсы
+         └── usecase/
+:data    com.nikolajew.photometadataeditor.data/
+         ├── db/              # SQLDelight
+         ├── scanner/
+         ├── metadata/        # ExifToolClient (интерфейс), MetadataRepositoryImpl
+         └── repository/
+:composeApp  com.nikolajew.photometadataeditor/
+         ├── ui/
+         │   ├── root/
+         │   ├── library/     # grid + detail + batch
+         │   ├── editor/
+         │   ├── locationpicker/
+         │   ├── map/
+         │   ├── settings/
+         │   └── theme/
+         ├── platform/        # FolderPicker и другие UI-сервисы
+         └── di/
 ```
 
 ## Тестирование
