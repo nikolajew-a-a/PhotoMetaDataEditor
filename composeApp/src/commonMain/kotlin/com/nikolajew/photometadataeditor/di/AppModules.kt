@@ -30,7 +30,7 @@ val dataModule: Module = module {
     single { PhotoIndexDatabase(get<DatabaseDriverFactory>().createDriver()) }
     single { PhotoIndexLocalDataSource(get()) }
     single { EditLogLocalDataSource(get()) }
-    single<PhotoLibraryRepository> { PhotoLibraryRepositoryImpl(get(), get(), get(), get()) }
+    single<PhotoLibraryRepository> { PhotoLibraryRepositoryImpl(get(), get(), get(), get(), get()) }
     single<MetadataRepository> { MetadataRepositoryImpl(get(), get(), get()) }
 }
 

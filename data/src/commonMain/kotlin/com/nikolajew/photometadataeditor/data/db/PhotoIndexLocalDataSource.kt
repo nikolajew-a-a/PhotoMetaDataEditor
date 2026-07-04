@@ -56,6 +56,11 @@ class PhotoIndexLocalDataSource(
         withContext(Dispatchers.IO) {
             queries.deleteByPath(path)
         }
+
+    suspend fun deleteAll(paths: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            queries.deleteByPaths(paths)
+        }
 }
 
 data class IndexedFile(

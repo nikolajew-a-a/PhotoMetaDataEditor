@@ -4,6 +4,7 @@ import com.nikolajew.photometadataeditor.data.db.IndexedFile
 import com.nikolajew.photometadataeditor.data.db.PhotoEntity
 import com.nikolajew.photometadataeditor.data.db.PhotoIndexLocalDataSource
 import com.nikolajew.photometadataeditor.data.filesystem.FileDeleter
+import com.nikolajew.photometadataeditor.data.filesystem.FileExistenceChecker
 import com.nikolajew.photometadataeditor.data.metadata.MetadataEngine
 import com.nikolajew.photometadataeditor.data.scanner.MediaFileScanner
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
@@ -20,11 +21,23 @@ class PhotoLibraryRepositoryImpl(
     private val localDataSource: PhotoIndexLocalDataSource,
     private val metadataEngine: MetadataEngine,
     private val fileDeleter: FileDeleter,
+    private val existenceChecker: FileExistenceChecker,
 ) : PhotoLibraryRepository {
 
+    /**
+     * Индекс может отставать от диска (файлы удалили мимо приложения) —
+     * сверяем каждую выдачу с диском: пропавшие не показываем и удаляем из индекса.
+     */
     override val photos: Flow<List<Photo>> =
         localDataSource.observeAll().map { entities ->
-            entities.map(PhotoEntity::toDomain)
+            val existing = existenceChecker.existingOf(entities.map(PhotoEntity::path))
+            val missing = entities.filterNot { it.path in existing }
+            if (missing.isNotEmpty()) {
+                localDataSource.deleteAll(missing.map(PhotoEntity::path))
+            }
+            entities
+                .filter { it.path in existing }
+                .map(PhotoEntity::toDomain)
         }
 
     override suspend fun openFolder(path: String) {

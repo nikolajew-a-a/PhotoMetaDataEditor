@@ -35,3 +35,6 @@ UPDATE photoEntity SET lat = :lat, lon = :lon WHERE path = :path;
 
 deleteByPath:
 DELETE FROM photoEntity WHERE path = :path;
+
+deleteByPaths:
+DELETE FROM photoEntity WHERE path IN :paths;

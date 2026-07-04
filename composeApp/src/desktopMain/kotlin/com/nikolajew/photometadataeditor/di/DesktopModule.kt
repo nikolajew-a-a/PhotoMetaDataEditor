@@ -3,7 +3,9 @@ package com.nikolajew.photometadataeditor.di
 import com.nikolajew.photometadataeditor.data.db.DatabaseDriverFactory
 import com.nikolajew.photometadataeditor.data.db.DesktopDatabaseDriverFactory
 import com.nikolajew.photometadataeditor.data.filesystem.DesktopFileDeleter
+import com.nikolajew.photometadataeditor.data.filesystem.DesktopFileExistenceChecker
 import com.nikolajew.photometadataeditor.data.filesystem.FileDeleter
+import com.nikolajew.photometadataeditor.data.filesystem.FileExistenceChecker
 import com.nikolajew.photometadataeditor.data.metadata.ExifToolLocator
 import com.nikolajew.photometadataeditor.data.metadata.ExifToolMetadataEngine
 import com.nikolajew.photometadataeditor.data.metadata.ExifToolProcess
@@ -21,6 +23,7 @@ val desktopModule: Module = module {
     single<MediaFileScanner> { DesktopMediaFileScanner() }
     single<FolderPicker> { DesktopFolderPicker() }
     single<FileDeleter> { DesktopFileDeleter() }
+    single<FileExistenceChecker> { DesktopFileExistenceChecker() }
     single { ExifToolProcess(ExifToolLocator::locate) } onClose { it?.closeQuietly() }
     single<MetadataEngine> { ExifToolMetadataEngine(get()) }
 }
