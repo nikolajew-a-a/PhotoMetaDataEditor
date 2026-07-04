@@ -136,5 +136,12 @@ EditorComponent → UpdateCaptureDateUseCase → MetadataRepository:
 | Koin | DI |
 | SQLDelight (+ sqlite-driver) | индекс и статусы |
 | kotlinx-coroutines / -datetime | асинхронность, даты |
-| Coil 3 (KMP) | загрузка миниатюр в сетке |
+| Coil 3 (KMP) + ktor | загрузка миниатюр и карт-тайлов |
 | ExifTool (внешний процесс) | чтение/запись метаданных |
+
+## Карта
+
+Вместо Leaflet/WebView (потребовали бы встроенный браузер) — собственный `TileMapView`:
+чистый Compose поверх растровых тайлов OSM (`tile.openstreetmap.org`), математика
+веб-меркатора в `SlippyMap`. Загрузка и кэш тайлов — через Coil. Работает в commonMain,
+то есть без изменений переедет на Android.
