@@ -1,0 +1,8 @@
+CREATE TABLE editLog (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    field TEXT NOT NULL,
+    old_value TEXT,
+    new_value TEXT NOT NULL,
+    edited_at INTEGER NOT NULL
+);
