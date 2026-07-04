@@ -3,6 +3,7 @@ package com.nikolajew.photometadataeditor.data.repository
 import com.nikolajew.photometadataeditor.data.db.IndexedFile
 import com.nikolajew.photometadataeditor.data.db.PhotoEntity
 import com.nikolajew.photometadataeditor.data.db.PhotoIndexLocalDataSource
+import com.nikolajew.photometadataeditor.data.filesystem.FileDeleter
 import com.nikolajew.photometadataeditor.data.metadata.MetadataEngine
 import com.nikolajew.photometadataeditor.data.scanner.MediaFileScanner
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
@@ -18,6 +19,7 @@ class PhotoLibraryRepositoryImpl(
     private val scanner: MediaFileScanner,
     private val localDataSource: PhotoIndexLocalDataSource,
     private val metadataEngine: MetadataEngine,
+    private val fileDeleter: FileDeleter,
 ) : PhotoLibraryRepository {
 
     override val photos: Flow<List<Photo>> =
@@ -54,6 +56,11 @@ class PhotoLibraryRepositoryImpl(
 
     override suspend fun setProcessed(ids: List<String>, processed: Boolean) {
         localDataSource.setProcessed(ids, processed)
+    }
+
+    override suspend fun deletePhoto(id: String) {
+        fileDeleter.delete(id)
+        localDataSource.delete(id)
     }
 
     private fun mediaTypeFor(extension: String): MediaType? = when (extension) {

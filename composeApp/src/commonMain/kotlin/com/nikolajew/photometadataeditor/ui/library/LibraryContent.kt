@@ -23,7 +23,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -90,6 +93,9 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
             Spacer(Modifier.height(12.dp))
             FilterTabs(
                 selected = state.filter,
+                totalCount = state.totalCount,
+                unprocessedCount = state.unprocessedCount,
+                processedCount = state.processedCount,
                 onSelect = component::onFilterSelect,
             )
             Spacer(Modifier.height(12.dp))
@@ -99,7 +105,7 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                items(state.photos, key = Photo::id) { photo ->
+                items(state.visiblePhotos, key = Photo::id) { photo ->
                     PhotoTile(
                         photo = photo,
                         isSelected = photo.id == state.selectedPhotoId,
@@ -117,6 +123,7 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
             onSaveCaptureDate = component::onSaveCaptureDate,
             onSaveLocation = component::onSaveLocation,
             onPickLocationClick = component::onPickLocationClick,
+            onDeleteClick = component::onDeleteClick,
         )
     }
 
@@ -124,11 +131,42 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
     pickerSlot.child?.instance?.let { picker ->
         LocationPickerDialog(picker)
     }
+
+    if (state.isDeleteConfirmVisible) {
+        state.selectedPhoto?.let { photo ->
+            AlertDialog(
+                onDismissRequest = component::onDeleteCancel,
+                title = { Text("Удалить файл?") },
+                text = {
+                    Text("«${photo.fileName}» будет перемещён в корзину.")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = component::onDeleteConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                    ) {
+                        Text("Удалить")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = component::onDeleteCancel) {
+                        Text("Отмена")
+                    }
+                },
+            )
+        }
+    }
 }
 
 @Composable
 private fun FilterTabs(
     selected: LibraryFilter,
+    totalCount: Int,
+    unprocessedCount: Int,
+    processedCount: Int,
     onSelect: (LibraryFilter) -> Unit,
 ) {
     val filters = LibraryFilter.entries
@@ -140,9 +178,9 @@ private fun FilterTabs(
                 text = {
                     Text(
                         text = when (filter) {
-                            LibraryFilter.ALL -> "Все"
-                            LibraryFilter.UNPROCESSED -> "Необработанные"
-                            LibraryFilter.PROCESSED -> "Обработанные"
+                            LibraryFilter.ALL -> "Все ($totalCount)"
+                            LibraryFilter.UNPROCESSED -> "Необработанные ($unprocessedCount)"
+                            LibraryFilter.PROCESSED -> "Обработанные ($processedCount)"
                         },
                     )
                 },
@@ -228,6 +266,7 @@ private fun DetailPanel(
     onSaveCaptureDate: (String) -> Unit,
     onSaveLocation: (String, String) -> Unit,
     onPickLocationClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -306,6 +345,16 @@ private fun DetailPanel(
                     Button(onClick = onToggleProcessed) {
                         Text("Отметить обработанным")
                     }
+                }
+
+                OutlinedButton(
+                    onClick = onDeleteClick,
+                    enabled = !isSaving,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text("Удалить файл")
                 }
             }
         }

@@ -32,3 +32,6 @@ UPDATE photoEntity SET taken_at = :takenAt WHERE path = :path;
 
 updateLocation:
 UPDATE photoEntity SET lat = :lat, lon = :lon WHERE path = :path;
+
+deleteByPath:
+DELETE FROM photoEntity WHERE path = :path;

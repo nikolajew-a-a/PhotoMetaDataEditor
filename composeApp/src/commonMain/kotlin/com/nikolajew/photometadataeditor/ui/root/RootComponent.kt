@@ -63,6 +63,7 @@ class DefaultRootComponent(
                 setProcessed = get(),
                 updateCaptureDate = get(),
                 updateLocation = get(),
+                deletePhoto = get(),
                 observeLibrary = get(),
             ),
         )

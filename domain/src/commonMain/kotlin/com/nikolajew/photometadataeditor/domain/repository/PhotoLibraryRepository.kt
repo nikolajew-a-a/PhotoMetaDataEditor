@@ -10,4 +10,7 @@ interface PhotoLibraryRepository {
     suspend fun openFolder(path: String)
 
     suspend fun setProcessed(ids: List<String>, processed: Boolean)
+
+    /** Удаляет файл с диска (в корзину, если платформа умеет) и из индекса. */
+    suspend fun deletePhoto(id: String)
 }

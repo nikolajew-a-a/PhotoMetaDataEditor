@@ -51,6 +51,11 @@ class PhotoIndexLocalDataSource(
         withContext(Dispatchers.IO) {
             queries.updateLocation(latitude, longitude, path)
         }
+
+    suspend fun delete(path: String) =
+        withContext(Dispatchers.IO) {
+            queries.deleteByPath(path)
+        }
 }
 
 data class IndexedFile(

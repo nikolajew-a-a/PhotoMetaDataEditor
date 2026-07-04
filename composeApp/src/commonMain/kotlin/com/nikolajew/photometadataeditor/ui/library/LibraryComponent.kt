@@ -11,6 +11,7 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
 import com.nikolajew.photometadataeditor.domain.model.LibraryFilter
 import com.nikolajew.photometadataeditor.domain.model.Photo
+import com.nikolajew.photometadataeditor.domain.usecase.DeletePhotoUseCase
 import com.nikolajew.photometadataeditor.domain.usecase.ObserveLibraryUseCase
 import com.nikolajew.photometadataeditor.domain.usecase.OpenFolderUseCase
 import com.nikolajew.photometadataeditor.domain.usecase.SetProcessedUseCase
@@ -21,12 +22,10 @@ import com.nikolajew.photometadataeditor.ui.locationpicker.DefaultLocationPicker
 import com.nikolajew.photometadataeditor.ui.locationpicker.LocationPickerComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -56,17 +55,36 @@ interface LibraryComponent {
     val locationPicker: Value<ChildSlot<*, LocationPickerComponent>>
 
     fun onPickLocationClick()
+
+    fun onDeleteClick()
+
+    fun onDeleteConfirm()
+
+    fun onDeleteCancel()
 }
 
 data class LibraryState(
     val folderPath: String? = null,
     val filter: LibraryFilter = LibraryFilter.ALL,
+    /** Полная библиотека — без фильтра, чтобы вкладки знали свои счётчики. */
     val photos: List<Photo> = emptyList(),
     val selectedPhotoId: String? = null,
     val isScanning: Boolean = false,
     val isSaving: Boolean = false,
     val editError: String? = null,
+    val isDeleteConfirmVisible: Boolean = false,
 ) {
+    val visiblePhotos: List<Photo>
+        get() = when (filter) {
+            LibraryFilter.ALL -> photos
+            LibraryFilter.UNPROCESSED -> photos.filterNot(Photo::processed)
+            LibraryFilter.PROCESSED -> photos.filter(Photo::processed)
+        }
+
+    val totalCount: Int get() = photos.size
+    val processedCount: Int get() = photos.count(Photo::processed)
+    val unprocessedCount: Int get() = totalCount - processedCount
+
     val selectedPhoto: Photo? get() = photos.find { it.id == selectedPhotoId }
 }
 
@@ -77,12 +95,11 @@ class DefaultLibraryComponent(
     private val setProcessed: SetProcessedUseCase,
     private val updateCaptureDate: UpdateCaptureDateUseCase,
     private val updateLocation: UpdateLocationUseCase,
+    private val deletePhoto: DeletePhotoUseCase,
     observeLibrary: ObserveLibraryUseCase,
 ) : LibraryComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-    private val filterFlow = MutableStateFlow(LibraryFilter.ALL)
 
     private val _state = MutableStateFlow(LibraryState())
     override val state: StateFlow<LibraryState> = _state
@@ -110,16 +127,9 @@ class DefaultLibraryComponent(
         lifecycle.doOnDestroy { scope.cancel() }
 
         scope.launch {
-            @OptIn(ExperimentalCoroutinesApi::class)
-            filterFlow
-                .flatMapLatest { filter ->
-                    observeLibrary(filter).also {
-                        _state.update { state -> state.copy(filter = filter) }
-                    }
-                }
-                .collect { photos ->
-                    _state.update { it.copy(photos = photos) }
-                }
+            observeLibrary(LibraryFilter.ALL).collect { photos ->
+                _state.update { it.copy(photos = photos) }
+            }
         }
     }
 
@@ -136,7 +146,7 @@ class DefaultLibraryComponent(
     }
 
     override fun onFilterSelect(filter: LibraryFilter) {
-        filterFlow.value = filter
+        _state.update { it.copy(filter = filter) }
     }
 
     override fun onPhotoClick(id: String) {
@@ -182,6 +192,37 @@ class DefaultLibraryComponent(
                 longitude = photo.location?.longitude,
             ),
         )
+    }
+
+    override fun onDeleteClick() {
+        if (_state.value.selectedPhoto == null) return
+        _state.update { it.copy(isDeleteConfirmVisible = true) }
+    }
+
+    override fun onDeleteCancel() {
+        _state.update { it.copy(isDeleteConfirmVisible = false) }
+    }
+
+    override fun onDeleteConfirm() {
+        val photo = _state.value.selectedPhoto ?: return
+        scope.launch {
+            _state.update { it.copy(isSaving = true, editError = null) }
+            try {
+                deletePhoto(photo.id)
+                _state.update {
+                    it.copy(selectedPhotoId = null, isDeleteConfirmVisible = false)
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        editError = e.message ?: "Не удалось удалить файл",
+                        isDeleteConfirmVisible = false,
+                    )
+                }
+            } finally {
+                _state.update { it.copy(isSaving = false) }
+            }
+        }
     }
 
     private fun saveEdit(block: suspend () -> Unit) {
