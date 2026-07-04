@@ -4,6 +4,7 @@ compose-multiplatform = "1.8.2"
 decompose = "3.3.0"
 coil = "3.2.0"
 okio = "3.9.0"
+sqldelight = "2.1.0"
 koin = "4.0.4"
 coroutines = "1.10.2"
 kotlinx-datetime = "0.6.2"
@@ -12,6 +13,9 @@ kotlinx-serialization = "1.8.1"
 [libraries]
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-extensions-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -25,3 +29,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

@@ -8,4 +8,6 @@ interface PhotoLibraryRepository {
     val photos: Flow<List<Photo>>
 
     suspend fun openFolder(path: String)
+
+    suspend fun setProcessed(ids: List<String>, processed: Boolean)
 }

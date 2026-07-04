@@ -1,0 +1,25 @@
+CREATE TABLE photoEntity (
+    path TEXT NOT NULL PRIMARY KEY,
+    media_type TEXT NOT NULL,
+    taken_at INTEGER,
+    lat REAL,
+    lon REAL,
+    processed INTEGER NOT NULL DEFAULT 0,
+    indexed_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM photoEntity ORDER BY path;
+
+upsert:
+INSERT INTO photoEntity(path, media_type, taken_at, lat, lon, processed, indexed_at)
+VALUES (:path, :mediaType, NULL, NULL, NULL, 0, :indexedAt)
+ON CONFLICT(path) DO UPDATE SET
+    media_type = :mediaType,
+    indexed_at = :indexedAt;
+
+deleteStale:
+DELETE FROM photoEntity WHERE indexed_at < :scanTime;
+
+setProcessed:
+UPDATE photoEntity SET processed = :processed WHERE path IN :paths;

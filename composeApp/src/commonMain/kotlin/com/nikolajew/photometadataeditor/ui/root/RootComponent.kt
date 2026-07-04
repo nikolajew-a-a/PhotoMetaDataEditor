@@ -44,6 +44,7 @@ class DefaultRootComponent(
                 componentContext = componentContext,
                 folderPicker = get(),
                 openFolder = get(),
+                setProcessed = get(),
                 observeLibrary = get(),
             ),
         )
