@@ -1,6 +1,12 @@
 package com.nikolajew.photometadataeditor.ui.library
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
 import com.nikolajew.photometadataeditor.domain.model.LibraryFilter
@@ -11,6 +17,8 @@ import com.nikolajew.photometadataeditor.domain.usecase.SetProcessedUseCase
 import com.nikolajew.photometadataeditor.domain.usecase.UpdateCaptureDateUseCase
 import com.nikolajew.photometadataeditor.domain.usecase.UpdateLocationUseCase
 import com.nikolajew.photometadataeditor.platform.FolderPicker
+import com.nikolajew.photometadataeditor.ui.locationpicker.DefaultLocationPickerComponent
+import com.nikolajew.photometadataeditor.ui.locationpicker.LocationPickerComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +33,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.serialization.Serializable
 
 interface LibraryComponent {
 
@@ -42,6 +51,11 @@ interface LibraryComponent {
     fun onSaveCaptureDate(input: String)
 
     fun onSaveLocation(latitudeInput: String, longitudeInput: String)
+
+    /** Диалог выбора точки на карте (открыт, когда слот не пуст). */
+    val locationPicker: Value<ChildSlot<*, LocationPickerComponent>>
+
+    fun onPickLocationClick()
 }
 
 data class LibraryState(
@@ -72,6 +86,25 @@ class DefaultLibraryComponent(
 
     private val _state = MutableStateFlow(LibraryState())
     override val state: StateFlow<LibraryState> = _state
+
+    private val pickerNavigation = SlotNavigation<LocationPickerConfig>()
+
+    override val locationPicker: Value<ChildSlot<*, LocationPickerComponent>> =
+        childSlot(
+            source = pickerNavigation,
+            serializer = LocationPickerConfig.serializer(),
+            handleBackButton = true,
+        ) { config, childContext ->
+            DefaultLocationPickerComponent(
+                componentContext = childContext,
+                initialLocation = config.toGeoPoint(),
+                onResult = { point ->
+                    pickerNavigation.dismiss()
+                    saveEdit { updateLocation(config.photoId, point) }
+                },
+                onDismiss = pickerNavigation::dismiss,
+            )
+        }
 
     init {
         lifecycle.doOnDestroy { scope.cancel() }
@@ -140,6 +173,17 @@ class DefaultLibraryComponent(
         saveEdit { updateLocation(photo.id, GeoPoint(latitude, longitude)) }
     }
 
+    override fun onPickLocationClick() {
+        val photo = _state.value.selectedPhoto ?: return
+        pickerNavigation.activate(
+            LocationPickerConfig(
+                photoId = photo.id,
+                latitude = photo.location?.latitude,
+                longitude = photo.location?.longitude,
+            ),
+        )
+    }
+
     private fun saveEdit(block: suspend () -> Unit) {
         scope.launch {
             _state.update { it.copy(isSaving = true, editError = null) }
@@ -151,6 +195,16 @@ class DefaultLibraryComponent(
                 _state.update { it.copy(isSaving = false) }
             }
         }
+    }
+
+    @Serializable
+    private data class LocationPickerConfig(
+        val photoId: String,
+        val latitude: Double?,
+        val longitude: Double?,
+    ) {
+        fun toGeoPoint(): GeoPoint? =
+            if (latitude != null && longitude != null) GeoPoint(latitude, longitude) else null
     }
 
     private companion object {

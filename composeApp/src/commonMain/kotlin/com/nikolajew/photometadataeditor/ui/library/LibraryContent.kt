@@ -46,10 +46,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
 import com.nikolajew.photometadataeditor.domain.model.LibraryFilter
 import com.nikolajew.photometadataeditor.domain.model.MediaType
 import com.nikolajew.photometadataeditor.domain.model.Photo
+import com.nikolajew.photometadataeditor.ui.locationpicker.LocationPickerDialog
 import kotlin.math.round
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -114,7 +116,13 @@ fun LibraryContent(component: LibraryComponent, modifier: Modifier = Modifier) {
             onToggleProcessed = component::onToggleProcessed,
             onSaveCaptureDate = component::onSaveCaptureDate,
             onSaveLocation = component::onSaveLocation,
+            onPickLocationClick = component::onPickLocationClick,
         )
+    }
+
+    val pickerSlot by component.locationPicker.subscribeAsState()
+    pickerSlot.child?.instance?.let { picker ->
+        LocationPickerDialog(picker)
     }
 }
 
@@ -219,6 +227,7 @@ private fun DetailPanel(
     onToggleProcessed: () -> Unit,
     onSaveCaptureDate: (String) -> Unit,
     onSaveLocation: (String, String) -> Unit,
+    onPickLocationClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -274,6 +283,7 @@ private fun DetailPanel(
                     isSaving = isSaving,
                     onSaveCaptureDate = onSaveCaptureDate,
                     onSaveLocation = onSaveLocation,
+                    onPickLocationClick = onPickLocationClick,
                 )
 
                 if (editError != null) {
@@ -308,6 +318,7 @@ private fun MetadataEditor(
     isSaving: Boolean,
     onSaveCaptureDate: (String) -> Unit,
     onSaveLocation: (String, String) -> Unit,
+    onPickLocationClick: () -> Unit,
 ) {
     var dateInput by remember(photo.id, photo.takenAt) {
         mutableStateOf(photo.takenAt?.formatForInput() ?: "")
@@ -359,6 +370,12 @@ private fun MetadataEditor(
                 enabled = !isSaving && latInput.isNotBlank() && lonInput.isNotBlank(),
             ) {
                 Text("Сохранить локацию")
+            }
+            OutlinedButton(
+                onClick = onPickLocationClick,
+                enabled = !isSaving,
+            ) {
+                Text("Выбрать на карте")
             }
             if (isSaving) {
                 CircularProgressIndicator(

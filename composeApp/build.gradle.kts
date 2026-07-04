@@ -23,6 +23,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
             implementation(libs.okio)
             implementation(libs.decompose)
             implementation(libs.decompose.extensions.compose)
@@ -34,6 +35,8 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            // HTTP-движок для загрузки карт-тайлов через Coil
+            implementation(libs.ktor.client.java)
         }
     }
 }
