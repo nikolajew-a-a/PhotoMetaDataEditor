@@ -17,9 +17,6 @@ local.properties
 *.db-journal
 thumbnails/
 
-# Bundled/downloaded tools
-tools/exiftool/
-
 # OS
 Thumbs.db
 .DS_Store

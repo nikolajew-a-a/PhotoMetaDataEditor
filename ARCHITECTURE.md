@@ -27,9 +27,13 @@ Clean Architecture + MVI-подобные компоненты Decompose + Koin.
 ### data
 
 - `PhotoLibraryRepositoryImpl` — объединяет сканер файловой системы, SQLite-индекс и генератор миниатюр; отдаёт реактивный `Flow` библиотеки.
-- `MetadataRepositoryImpl` — оркестрирует запись метаданных: бэкап → запись через `ExifToolClient` → контрольное чтение → обновление индекса.
+- `MetadataRepositoryImpl` — оркестрирует запись метаданных: бэкап → запись через `MetadataEngine` → контрольное чтение → обновление индекса. Эта оркестрация общая для всех платформ, поэтому живёт в commonMain.
 - **SQLDelight** — таблица `photo`: `path`, `content_hash`, `media_type`, `taken_at`, `lat`, `lon`, `processed`, `thumb_path`, `indexed_at`. Хэш содержимого позволяет пережить переименование файла.
-- `ExifToolClient` — интерфейс в data-слое; desktop-реализация в `desktopMain`.
+- `MetadataEngine` — интерфейс движка чтения/записи метаданных (`readMetadata(paths)` / `writeMetadata(path, patch)`), commonMain. Платформенные реализации — в source set'ах того же модуля `:data`:
+  - `desktopMain`: `ExifToolMetadataEngine` — внешний процесс `exiftool` в режиме `-stay_open`. Управление процессом (запуск, остановка при выходе, поиск бинарника) — деталь desktopMain, наружу не торчит.
+  - `androidMain` (план): `ExifInterfaceMetadataEngine` на androidx.exifinterface. Репозиторий, домен и UI при этом не меняются.
+
+Два уровня абстракции не случайны: `MetadataRepository` (в domain) скрывает от use case'ов сам факт существования EXIF и движков; `MetadataEngine` (в data) скрывает от репозитория, чем именно пишутся байты. Первый нужен бизнес-логике, второй — мультиплатформенности.
 
 ### Платформенный слой (`desktopMain`, позже `androidMain`)
 
