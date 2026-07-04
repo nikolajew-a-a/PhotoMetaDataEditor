@@ -40,9 +40,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.nikolajew.photometadataeditor.domain.model.GeoPoint
 import com.nikolajew.photometadataeditor.domain.model.LibraryFilter
 import com.nikolajew.photometadataeditor.domain.model.MediaType
 import com.nikolajew.photometadataeditor.domain.model.Photo
+import kotlin.math.round
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import okio.Path.Companion.toPath
 
 @Composable
@@ -247,6 +252,14 @@ private fun DetailPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
+                    text = "Дата съёмки: ${photo.takenAt?.formatForUi() ?: "неизвестна"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "Локация: ${photo.location?.formatForUi() ?: "нет данных"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
                     text = if (photo.processed) "Статус: обработано" else "Статус: не обработано",
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -263,3 +276,17 @@ private fun DetailPanel(
         }
     }
 }
+
+/** Дата съёмки хранится как «настенное» время, интерпретированное в UTC. */
+private fun Instant.formatForUi(): String {
+    val dt = toLocalDateTime(TimeZone.UTC)
+    return "${dt.dayOfMonth.pad2()}.${dt.monthNumber.pad2()}.${dt.year} " +
+        "${dt.hour.pad2()}:${dt.minute.pad2()}"
+}
+
+private fun GeoPoint.formatForUi(): String =
+    "${latitude.round5()}, ${longitude.round5()}"
+
+private fun Int.pad2(): String = toString().padStart(2, '0')
+
+private fun Double.round5(): Double = round(this * 100_000) / 100_000

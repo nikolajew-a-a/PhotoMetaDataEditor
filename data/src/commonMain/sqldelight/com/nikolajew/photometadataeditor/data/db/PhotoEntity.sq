@@ -13,9 +13,12 @@ SELECT * FROM photoEntity ORDER BY path;
 
 upsert:
 INSERT INTO photoEntity(path, media_type, taken_at, lat, lon, processed, indexed_at)
-VALUES (:path, :mediaType, NULL, NULL, NULL, 0, :indexedAt)
+VALUES (:path, :mediaType, :takenAt, :lat, :lon, 0, :indexedAt)
 ON CONFLICT(path) DO UPDATE SET
     media_type = :mediaType,
+    taken_at = :takenAt,
+    lat = :lat,
+    lon = :lon,
     indexed_at = :indexedAt;
 
 deleteStale:

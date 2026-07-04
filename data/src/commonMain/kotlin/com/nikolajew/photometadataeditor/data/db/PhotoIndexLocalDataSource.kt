@@ -27,6 +27,9 @@ class PhotoIndexLocalDataSource(
                     queries.upsert(
                         path = file.path,
                         mediaType = file.mediaType,
+                        takenAt = file.takenAtEpochMillis,
+                        lat = file.latitude,
+                        lon = file.longitude,
                         indexedAt = scanTime,
                     )
                 }
@@ -43,4 +46,7 @@ class PhotoIndexLocalDataSource(
 data class IndexedFile(
     val path: String,
     val mediaType: String,
+    val takenAtEpochMillis: Long? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )

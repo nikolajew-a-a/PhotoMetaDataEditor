@@ -19,6 +19,8 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            // разбор JSON-вывода exiftool
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

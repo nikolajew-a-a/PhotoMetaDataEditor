@@ -3,6 +3,7 @@ package com.nikolajew.photometadataeditor.data.repository
 import com.nikolajew.photometadataeditor.data.db.IndexedFile
 import com.nikolajew.photometadataeditor.data.db.PhotoEntity
 import com.nikolajew.photometadataeditor.data.db.PhotoIndexLocalDataSource
+import com.nikolajew.photometadataeditor.data.metadata.MetadataEngine
 import com.nikolajew.photometadataeditor.data.scanner.MediaFileScanner
 import com.nikolajew.photometadataeditor.domain.model.GeoPoint
 import com.nikolajew.photometadataeditor.domain.model.MediaType
@@ -16,6 +17,7 @@ import kotlinx.datetime.Instant
 class PhotoLibraryRepositoryImpl(
     private val scanner: MediaFileScanner,
     private val localDataSource: PhotoIndexLocalDataSource,
+    private val metadataEngine: MetadataEngine,
 ) : PhotoLibraryRepository {
 
     override val photos: Flow<List<Photo>> =
@@ -27,10 +29,25 @@ class PhotoLibraryRepositoryImpl(
         val scanned = scanner.scan(path)
         val mediaFiles = scanned.mapNotNull { file ->
             val mediaType = mediaTypeFor(file.extension) ?: return@mapNotNull null
-            IndexedFile(path = file.path, mediaType = mediaType.name)
+            file.path to mediaType
         }
+
+        // Метаданные — best effort: без ExifTool библиотека всё равно работает
+        val metadata = runCatching { metadataEngine.readMetadata(mediaFiles.map { it.first }) }
+            .onFailure { System.err.println("Не удалось прочитать метаданные: ${it.message}") }
+            .getOrDefault(emptyMap())
+
         localDataSource.replaceIndex(
-            files = mediaFiles,
+            files = mediaFiles.map { (filePath, mediaType) ->
+                val meta = metadata[filePath]
+                IndexedFile(
+                    path = filePath,
+                    mediaType = mediaType.name,
+                    takenAtEpochMillis = meta?.takenAt?.toEpochMilliseconds(),
+                    latitude = meta?.location?.latitude,
+                    longitude = meta?.location?.longitude,
+                )
+            },
             scanTime = Clock.System.now().toEpochMilliseconds(),
         )
     }

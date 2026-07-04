@@ -20,7 +20,7 @@ val domainModule: Module = module {
 val dataModule: Module = module {
     single { PhotoIndexDatabase(get<DatabaseDriverFactory>().createDriver()) }
     single { PhotoIndexLocalDataSource(get()) }
-    single<PhotoLibraryRepository> { PhotoLibraryRepositoryImpl(get(), get()) }
+    single<PhotoLibraryRepository> { PhotoLibraryRepositoryImpl(get(), get(), get()) }
 }
 
 val appModules: List<Module> = listOf(domainModule, dataModule)
