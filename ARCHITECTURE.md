@@ -38,7 +38,7 @@ Clean Architecture + MVI-подобные компоненты Decompose + Koin.
 | Интерфейс | Desktop-реализация | Android (план) |
 |---|---|---|
 | `ExifToolClient` | ProcessBuilder, `-stay_open` | exifinterface + mp4parser |
-| `FolderPicker` | AWT FileDialog | Storage Access Framework |
+| `FolderPicker` | Swing JFileChooser | Storage Access Framework |
 | `ThumbnailGenerator` | ImageIO / FFmpeg (видео) | MediaMetadataRetriever |
 
 ## Навигация (Decompose)

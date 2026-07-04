@@ -8,6 +8,8 @@ import com.arkivanov.decompose.value.Value
 import com.nikolajew.photometadataeditor.ui.library.DefaultLibraryComponent
 import com.nikolajew.photometadataeditor.ui.library.LibraryComponent
 import kotlinx.serialization.Serializable
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 
 interface RootComponent {
 
@@ -20,7 +22,7 @@ interface RootComponent {
 
 class DefaultRootComponent(
     componentContext: ComponentContext,
-) : RootComponent, ComponentContext by componentContext {
+) : RootComponent, KoinComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
 
@@ -38,7 +40,12 @@ class DefaultRootComponent(
         componentContext: ComponentContext,
     ): RootComponent.Child = when (config) {
         is Config.Library -> RootComponent.Child.Library(
-            DefaultLibraryComponent(componentContext),
+            DefaultLibraryComponent(
+                componentContext = componentContext,
+                folderPicker = get(),
+                openFolder = get(),
+                observeLibrary = get(),
+            ),
         )
     }
 
